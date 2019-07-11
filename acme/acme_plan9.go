@@ -111,7 +111,7 @@ func Open(id int, ctl *os.File) (*Win, error) {
 	}
 	if ctl == nil {
 		var err error
-		ctl, err = os.Open(fmt.Sprintf("/mnt/acme/%d/ctl", id))
+		ctl, err = os.OpenFile(fmt.Sprintf("/mnt/acme/%d/ctl", id), os.O_RDWR, 0755)
 		if err != nil {
 			return nil, err
 		}
