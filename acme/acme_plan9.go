@@ -71,7 +71,15 @@ type LogReader struct {
 
 // Log returns a reader reading the acme/log file.
 func Log() (*LogReader, error) {
-	return nil, errors.New("not supported")
+	fsysOnce.Do(mountAcme)
+	if fsysErr != nil {
+		return nil, fsysErr
+	}
+	f, err := os.Open("/mnt/acme/log")
+	if err != nil {
+		return nil, err
+	}
+	return &LogReader{f: f}, nil
 }
 
 // Windows returns a list of the existing acme windows.
