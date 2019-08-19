@@ -44,6 +44,7 @@ type Display struct {
 	dataqid        uint64
 	local          bool
 	isnew          bool
+	oldlabel       string
 }
 
 type Image struct {
@@ -113,16 +114,61 @@ func Init(errch chan<- error, fontname, label, winsize string) (*Display, error)
 	}
 	d.DefaultFont = font
 
+	if _, err = os.Stat("/dev/label"); err == nil {
+		f, err := os.Open("/dev/label")
+		defer f.Close()
+		if err != nil {
+			return nil, err
+		}
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		d.oldlabel = string(b)
+	}
+
 	if label != "" {
 		f, err := os.Create("/dev/label")
+		defer f.Close()
 		if err != nil {
 			return nil, err
 		}
 		f.Write([]byte(label))
-		f.Close()
 	}
 
 	return d, d.Attach()
+}
+
+func (d *Display) Close() error {
+	defer d.ctl.Close()
+	defer d.ref.Close()
+	defer d.data.Close()
+
+	if d.oldlabel != "" {
+		f, err := os.OpenFile("/dev/label", os.O_RDWR, 0666)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+		f.Write([]byte(d.oldlabel))
+	}
+
+	/*
+	* This is a bit of a hack to force a redraw of the
+	* window from rio. This can result in a small flicker
+	* of the window, but I can't seem to find reference
+	* of this action within the closedisplay functions
+	* of /sys/src/libdraw/init.c for a proper way
+	* of handeling this.
+	*/
+	f, err := os.OpenFile("/dev/wctl", os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	f.Write([]byte("hide"))
+	f.Write([]byte("unhide"))
+	f.Close()
+	return nil
 }
 
 const noborder = "noborder"
@@ -285,6 +331,12 @@ func (d *Display) flush(visible bool) error {
 	}
 
 	return d.flushBuffer()
+}
+
+func (d *Display) Flush() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.flush(true)
 }
 
 //See /sys/src/libdraw/init.c:/^bufimage/
