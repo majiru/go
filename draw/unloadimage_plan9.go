@@ -1,5 +1,3 @@
-// +build !plan9
-
 package draw
 
 import (
@@ -46,7 +44,7 @@ func (src *Image) unload(r image.Rectangle, data []byte) (n int, err error) {
 		if err := d.flush(false); err != nil {
 			return ntot, err
 		}
-		n, err := d.conn.ReadDraw(data[ntot:])
+		n, err := d.data.Read(data[ntot:])
 		ntot += n
 		if err != nil {
 			return ntot, err
