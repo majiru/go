@@ -190,7 +190,7 @@ func (d *Display) Attach() error {
 			* the time we read it and the time we try to pull it
 			* from the draw device, so this should be wrapped.
 			 */
-			if i, err = namedimage(d, string(b)); err != nil {
+			if i, err = d.namedimage(string(b)); err != nil {
 				return err
 			}
 		}
