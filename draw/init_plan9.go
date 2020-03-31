@@ -68,6 +68,14 @@ type Screen struct {
 
 const InfoSize = 12 * 12
 
+// Refresh algorithms to execute when a window is resized or uncovered.
+// Refmesg is almost always the correct one to use.
+const (
+	Refbackup = 0
+	Refnone   = 1
+	Refmesg   = 2
+)
+
 const deffontname = "*default*"
 
 //Init sets up the screen and connects the specific window image specified
@@ -136,7 +144,7 @@ func Init(errch chan<- error, fontname, label, winsize string) (*Display, error)
 		f.Write([]byte(label))
 	}
 
-	return d, d.Attach()
+	return d, d.Attach(0)
 }
 
 func (d *Display) Close() error {
@@ -160,7 +168,7 @@ func (d *Display) Close() error {
 	* of this action within the closedisplay functions
 	* of /sys/src/libdraw/init.c for a proper way
 	* of handeling this.
-	*/
+	 */
 	f, err := os.OpenFile("/dev/wctl", os.O_WRONLY, 0666)
 	if err != nil {
 		return err
@@ -174,7 +182,7 @@ func (d *Display) Close() error {
 const noborder = "noborder"
 
 //See /sys/src/libdraw/init.c:/^gengetwindow/
-func (d *Display) Attach() error {
+func (d *Display) Attach(ref int) error {
 	var (
 		b   []byte
 		i   *Image = nil
@@ -207,7 +215,7 @@ func (d *Display) Attach() error {
 		return err
 	}
 	d.ScreenImage = i // temporary, for d.ScreenImage.Pix
-	d.ScreenImage, err = allocwindow(nil, d.Screen, d.Image.R, 0, White)
+	d.ScreenImage, err = allocwindow(nil, d.Screen, d.Image.R, ref, White)
 	if err != nil {
 		return err
 	}
